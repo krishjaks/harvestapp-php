@@ -35,59 +35,6 @@ class Harvest {
 		$this->ua = "PHP/".phpversion()." CURL/".implode('_',curl_version());
 	}
 	
-	function user_report($person_id, $from, $to) {
-
-		$h_tasks = $this->get_tasks();
-		$h_projects = $this->get_projects();
-		$h_clients = $this->get_clients();
-		$h_entries = $this->get_person_entries($person_id, $from, $to);
-		$data = array();
-
-		$daysoffset = 4;
-		$start = 9999999999;
-		$end = 0;
-
-		foreach($h_entries as $h_entry) {
-
-			$week = "week_".strftime("%Y%U", strtotime("".$h_entry->spent_at) + ($daysoffset*24*60*60));
-			
-			$start = min($start, strftime("%Y%m%d %a %w", strtotime("".$h_entry->spent_at) + ($daysoffset*24*60*60)));
-			$end = max($end, strftime("%Y%m%d %a %w", strtotime("".$h_entry->spent_at) + ($daysoffset*24*60*60)));
-			
-			$notes = "".$h_entry->notes[0];
-			$hours = 0.0 + (float)$h_entry->hours;
-			$task_name = preg_replace('/\(details field REQUIRED\)/i', '', "".$h_tasks["{$h_entry->task_id}"]->name);
-			$project_name = "".$h_projects["{$h_entry->project_id}"]->name;
-			$client_id = "".$h_projects["{$h_entry->project_id}"]->client_id;
-			$client_name =  "".$h_clients[$client_id]->name;
-						
-			if (preg_match('/vacation/i', $task_name)) continue;
-			
-			if (preg_match('/analytics/i', $task_name) && preg_match('/source spring/i', $client_name)) {
-			
-				list($name, $value) = preg_split('/:/', $notes);
-				$name = trim(strtolower($name));
-				$value = 0 + trim(strtolower($value));
-				$data[$week]['analytics'][$name] = max($data[$week]['analytics'][$name], $value);
-
-			} else {
-				
-				$data[$week]['entries'][$client_name][$project_name][$task_name]['hours'] = $hours;
-				$data[$week]['entries'][$client_name][$project_name][$task_name]['notes'][] = $notes;
-	
-				$data[$week]['clients'][$client_name] += $hours;
-				$data[$week]['projects'][$project_name] += $hours;
-				$data[$week]['tasks'][$task_name] += $hours;
-				$data[$week]['total'] += $hours;
-
-			}
-		}
-		//echo "START {$start} END {$end} ";
-		krsort($data);
-		return $data;
-		
-	}
-
 	function get_people () {
 		return $this->get_many('people');
 	}
